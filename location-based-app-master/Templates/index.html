@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PLACE LOCATOR</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>LOCATOR</h1>
+    <div id="data-container"></div>
+
+    <div style="text-align:center;">
+        <div style="display:inline-block;">
+            <label for="waterfall-select">LOCATE:</label>
+            <select id="waterfall-select" name="center">
+            <option name="data"  value="waterfalls">waterfalls</option>
+            <option name="data" value="caves">caves</option>
+            <option name="data" value="hills">hills</option>
+            <option name="data" value="springs">springs</option>
+          </select>
+        </div>
+        <div style="display:inline-block;">
+            <button onClick="chooseData()">Go</button>
+        </div>
+    </div>
+    <div id="map"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        function chooseData() {
+            let ab = document.querySelector('select[name="center"]').value
+            localStorage.setItem("data", ab)
+            console.log("ab", ab)
+            window.location.href = "/ "
+
+        }
+        var selectElement = document.getElementById("waterfall-select")
+        selectElement.value = localStorage.getItem("data")
+
+        // Add a marker for each 
+        var hills = [{
+            name: 'hill 1',
+            location: [-0.6546379, 34.7900458, 15],
+
+        }, {
+            name: 'hill 2',
+            location: [-0.699619, 34.7898868, 13.85],
+
+        }, {
+            name: 'hill 3',
+            location: [-0.6890251, 34.7851257, 15],
+
+            name: 'hill 4',
+            location: [-0.6773058, 34.7715169],
+        }];
+
+
+        var caves = [{
+            name: 'cave 1',
+            location: [-0.6743637, 34.7753614, 18.34],
+
+        }, {
+            name: 'cave 2',
+            location: [-0.6780949, 34.7327949, 14],
+
+        }, {
+            name: 'cave 3',
+            location: [-0.7139235, 34.8032076, 14],
+
+
+        }, {
+            name: 'cave 4',
+            location: [-0.6708163, 34.7420812, 14],
+
+        }];
+
+        var springs = [{
+            name: 'spring 1',
+            location: [-0.6301669, 34.633069, 13],
+
+        }, {
+            name: 'spring 2',
+            location: [-0.6546379, 34.7375175, 13],
+
+        }, {
+            name: 'spring 3',
+            location: [-0.6739269, 34.7765193, 18.34],
+
+        }, {
+            name: 'spring 3',
+            location: [-0.6452946, 34.6072171, 12.26],
+
+        }];
+
+
+        var waterfalls = [{
+            name: 'waterfall 1',
+            location: [-0.6889176, 34.7588609, 13],
+
+
+        }, {
+            name: 'waterfall 2',
+            location: [-0.6546379, 34.7375175, 13],
+
+        }, {
+            name: 'waterfall 3',
+            location: [-0.6739269, 34.7765193, 18.34],
+
+
+        }];
+
+
+
+        // Set the center coordinates of the map
+        var center = [-0.6803312, 34.7600382, 14];
+
+        // Create the map object
+        var map = L.map('map').setView(center, 15);
+
+        // Add the base layer (in this case, OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add a marker for the user's location
+        var userMarker = L.marker([-0.6917379, 34.7838437, 19]).addTo(map);
+        userMarker.bindPopup('Your Location');
+
+        let ab = localStorage.getItem("data")
+        console.log("data", ab)
+
+
+        // Description: This code adds markers for hills and calculates the shortest distance from the user marker to each hill marker
+
+        // Check if "ab" variable is null or equals "hills"
+        if (ab == null || ab == "hills") {
+            // Iterate through each hill in the "hills" array
+            hills.forEach(function(hill) {
+                // Add a new marker to the map for the current hill
+                var marker = L.marker(hill.location).addTo(map);
+                // Bind a popup to the marker displaying the name of the hill
+                marker.bindPopup(hill.name);
+
+                // Calculate the shortest distance from the user marker to the current hill marker
+                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
+
+                // Output the shortest distance to the console for testing purposes
+                console.log("Shortest distance to " + hill.name + ": " + shortestDistance);
+            });
+        } else {
+            // Handle the case where "ab" is not null and does not equal "hills"
+            console.log("Invalid input for 'ab' variable.");
+        }
+
+
+
+
+        if (ab == null || ab == "caves") {
+            caves.forEach(function(cave) {
+                var marker = L.marker(cave.location).addTo(map);
+
+                // Add cave name as a popup
+                var popupContent = (cave.name);
+                marker.bindPopup(popupContent);
+
+                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
+                //output the shortest distance
+                console.log("Shortest distance to " + cave.name + ": " + shortestDistance);
+            });
+        } else {
+            // Handle the case where "ab" is not null and does not equal "hills"
+            console.log("Invalid input for 'ab' variable.");
+
+        }
+
+
+        if (ab == null || ab == "springs") {
+            springs.forEach(function(spring) {
+                var marker = L.marker(spring.location).addTo(map);
+
+                // Add spring name as a popup
+                var popupContent = (spring.name);
+                marker.bindPopup(popupContent);
+
+                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
+
+
+            });
+        }
+        if (ab == null || ab == "waterfalls") {
+            waterfalls.forEach(function(waterfall) {
+                var marker = L.marker(waterfall.location).addTo(map);
+                marker.bindPopup(waterfall.name);
+
+                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
+
+            });
+        }
+    </script>
+
+</body>
+
+</html>

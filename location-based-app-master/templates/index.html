@@ -1,215 +1,506 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
     <title>PLACE LOCATOR</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink: #0d1117;
+            --paper: #f5f0e8;
+            --moss: #3a5a40;
+            --sage: #a3b18a;
+            --rust: #c0392b;
+            --gold: #d4a843;
+            --mist: #e8e0d0;
+        }
+
+        body {
+            background-color: var(--paper);
+            color: var(--ink);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /*Topographic background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                repeating-radial-gradient(ellipse at 20% 50%, transparent 0, transparent 60px, rgba(58,90,64,0.04) 60px, rgba(58,90,64,0.04) 61px),
+                repeating-radial-gradient(ellipse at 80% 30%, transparent 0, transparent 80px, rgba(58,90,64,0.03) 80px, rgba(58,90,64,0.03) 81px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+        }
+
+        /*HEADER*/
+        header {
+            padding: 48px 0 32px;
+            border-bottom: 2px solid var(--ink);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-left {}
+
+        .header-eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--moss);
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(52px, 8vw, 96px);
+            line-height: 0.9;
+            letter-spacing: 0.02em;
+            color: var(--ink);
+        }
+
+        h1 span {
+            color: var(--moss);
+        }
+
+        .header-sub {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+            font-weight: 300;
+            letter-spacing: 0.03em;
+        }
+
+        .coord-badge {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 13px;
+            letter-spacing: 0.1em;
+            color: var(--moss);
+            background: rgba(58,90,64,0.08);
+            border: 1px solid rgba(58,90,64,0.2);
+            padding: 8px 14px;
+            border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        /*CONTROLS*/
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .controls-label {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            font-weight: 500;
+            color: #888;
+        }
+
+        .category-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            cursor: pointer;
+            padding: 9px 20px;
+            border: 1.5px solid var(--ink);
+            background: transparent;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--ink);
+            border-radius: 2px;
+            transition: all 0.18s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pill::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--ink);
+            transform: translateY(100%);
+            transition: transform 0.18s ease;
+            z-index: 0;
+        }
+
+        .pill span { position: relative; z-index: 1; }
+
+        .pill:hover::before,
+        .pill.active::before { transform: translateY(0); }
+
+        .pill:hover,
+        .pill.active { color: var(--paper); }
+
+        .pill.active { border-color: var(--ink); }
+
+        .pill[data-type="waterfalls"].active,
+        .pill[data-type="waterfalls"]:hover { background: transparent; }
+        .pill[data-type="waterfalls"].active::before,
+        .pill[data-type="waterfalls"]:hover::before { background: #1a6b8a; }
+        .pill[data-type="waterfalls"].active { border-color: #1a6b8a; }
+
+        .pill[data-type="caves"].active::before,
+        .pill[data-type="caves"]:hover::before { background: #5c4033; }
+        .pill[data-type="caves"].active { border-color: #5c4033; }
+
+        .pill[data-type="hills"].active::before,
+        .pill[data-type="hills"]:hover::before { background: var(--moss); }
+        .pill[data-type="hills"].active { border-color: var(--moss); }
+
+        .pill[data-type="springs"].active::before,
+        .pill[data-type="springs"]:hover::before { background: #2980b9; }
+        .pill[data-type="springs"].active { border-color: #2980b9; }
+
+        /*MAP FRAME*/
+        .map-frame {
+            position: relative;
+            border: 2px solid var(--ink);
+            box-shadow: 6px 6px 0 var(--ink);
+            background: var(--mist);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .map-frame::before {
+            content: 'N';
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 1000;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            background: var(--paper);
+            border: 1.5px solid var(--ink);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            color: var(--ink);
+            pointer-events: none;
+        }
+
         #map {
-            height: 500px;
+            height: 520px;
             width: 100%;
         }
+
+        /*STATS ROW*/
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1px;
+            background: var(--ink);
+            border: 2px solid var(--ink);
+            margin-top: 24px;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+        }
+
+        .stat-cell {
+            background: var(--paper);
+            padding: 20px 24px;
+            transition: background 0.15s;
+        }
+
+        .stat-cell:hover { background: var(--mist); }
+
+        .stat-number {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 40px;
+            line-height: 1;
+            color: var(--moss);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #888;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /*LEGEND */
+        .legend-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0,0,0,0.12);
+            align-items: center;
+        }
+
+        .legend-label {
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            color: var(--ink);
+            font-weight: 400;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1.5px solid var(--ink);
+            flex-shrink: 0;
+        }
+
+        /*FOOTER*/
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: gap;
+            gap: 12px;
+        }
+
+        .footer-text {
+            font-size: 11px;
+            color: #aaa;
+            letter-spacing: 0.08em;
+        }
+
+        /*Leaflet overrides*/
+        .leaflet-popup-content-wrapper {
+            border-radius: 2px !important;
+            border: 1.5px solid var(--ink) !important;
+            box-shadow: 3px 3px 0 var(--ink) !important;
+            font-family: 'DM Sans', sans-serif !important;
+        }
+
+        .leaflet-popup-tip { background: var(--paper) !important; }
+
+        .leaflet-popup-content {
+            font-family: 'Bebas Neue', sans-serif !important;
+            font-size: 15px !important;
+            letter-spacing: 0.05em !important;
+            color: var(--ink) !important;
+            margin: 10px 14px !important;
+        }
+
+        .leaflet-control-zoom a {
+            font-family: 'Bebas Neue', sans-serif !important;
+            border-radius: 2px !important;
+        }
+
+        /*Animate in*/
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        header  { animation: fadeUp 0.5s ease both; }
+        .controls-bar { animation: fadeUp 0.5s 0.1s ease both; }
+        .map-frame    { animation: fadeUp 0.5s 0.2s ease both; }
+        .stats-row    { animation: fadeUp 0.5s 0.3s ease both; }
     </style>
 </head>
 
 <body>
-    <h1>LOCATOR</h1>
-    <div id="data-container"></div>
+<div class="app-wrapper">
 
-    <div style="text-align:center;">
-        <div style="display:inline-block;">
-            <label for="waterfall-select">LOCATE:</label>
-            <select id="waterfall-select" name="center">
-            <option name="data"  value="waterfalls">waterfalls</option>
-            <option name="data" value="caves">caves</option>
-            <option name="data" value="hills">hills</option>
-            <option name="data" value="springs">springs</option>
-          </select>
+    <header>
+        <div class="header-left">
+            <div class="header-eyebrow">Western Kenya · Field Survey</div>
+            <h1>PLACE<br><span>LOCATOR</span></h1>
+            <p class="header-sub">Discover natural landmarks near your position</p>
         </div>
-        <div style="display:inline-block;">
-            <button onClick="chooseData()">Go</button>
+        <div class="coord-badge">0°40'S · 34°45'E</div>
+    </header>
+
+    <div class="controls-bar">
+        <span class="controls-label">Show</span>
+        <div class="category-pills">
+            <button class="pill active" data-type="hills" onclick="selectCategory('hills')"><span>Hills</span></button>
+            <button class="pill" data-type="caves" onclick="selectCategory('caves')"><span>Caves</span></button>
+            <button class="pill" data-type="springs" onclick="selectCategory('springs')"><span>Springs</span></button>
+            <button class="pill" data-type="waterfalls" onclick="selectCategory('waterfalls')"><span>Waterfalls</span></button>
         </div>
     </div>
-    <div id="map"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script>
-        function chooseData() {
-            let ab = document.querySelector('select[name="center"]').value
-            localStorage.setItem("data", ab)
-            console.log("ab", ab)
-            window.location.href = "/ "
 
-        }
-        var selectElement = document.getElementById("waterfall-select")
-        selectElement.value = localStorage.getItem("data")
+    <div class="map-frame">
+        <div id="map"></div>
+    </div>
 
-        // Add a marker for each 
-        var hills = [{
-            name: 'hill 1',
-            location: [-0.6546379, 34.7900458, 15],
+    <div class="stats-row" id="stats-row">
+        <div class="stat-cell">
+            <div class="stat-number" id="stat-count">4</div>
+            <div class="stat-label">Locations shown</div>
+        </div>
+        <div class="stat-cell">
+            <div class="stat-number" id="stat-nearest">—</div>
+            <div class="stat-label">Nearest (m)</div>
+        </div>
+        <div class="stat-cell">
+            <div class="stat-number" id="stat-farthest">—</div>
+            <div class="stat-label">Farthest (m)</div>
+        </div>
+        <div class="stat-cell">
+            <div class="stat-number" id="stat-category">HILLS</div>
+            <div class="stat-label">Active category</div>
+        </div>
+    </div>
 
-        }, {
-            name: 'hill 2',
-            location: [-0.699619, 34.7898868, 13.85],
+    <div class="legend-row">
+        <span class="legend-label">Legend</span>
+        <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div> Your location</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--moss)"></div> Hills</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#5c4033"></div> Caves</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div> Springs</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1a6b8a"></div> Waterfalls</div>
+    </div>
 
-        }, {
-            name: 'hill 3',
-            location: [-0.6890251, 34.7851257, 15],
+    <footer>
+        <span class="footer-text">© 2026 Place Locator · Development build</span>
+        <span class="footer-text">Leaflet 1.7 · OpenStreetMap contributors</span>
+    </footer>
 
-            name: 'hill 4',
-            location: [-0.6773058, 34.7715169],
-        }];
+</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+<script>
+    const data = {
+        hills: [
+            { name: 'Hill 1', location: [-0.6546379, 34.7900458] },
+            { name: 'Hill 2', location: [-0.699619,  34.7898868] },
+            { name: 'Hill 3', location: [-0.6890251, 34.7851257] },
+            { name: 'Hill 4', location: [-0.6773058, 34.7715169] },
+        ],
+        caves: [
+            { name: 'Cave 1', location: [-0.6743637, 34.7753614] },
+            { name: 'Cave 2', location: [-0.6780949, 34.7327949] },
+            { name: 'Cave 3', location: [-0.7139235, 34.8032076] },
+            { name: 'Cave 4', location: [-0.6708163, 34.7420812] },
+        ],
+        springs: [
+            { name: 'Spring 1', location: [-0.6301669, 34.633069]  },
+            { name: 'Spring 2', location: [-0.6546379, 34.7375175] },
+            { name: 'Spring 3', location: [-0.6739269, 34.7765193] },
+            { name: 'Spring 4', location: [-0.6452946, 34.6072171] },
+        ],
+        waterfalls: [
+            { name: 'Waterfall 1', location: [-0.6889176, 34.7588609] },
+            { name: 'Waterfall 2', location: [-0.6546379, 34.7375175] },
+            { name: 'Waterfall 3', location: [-0.6739269, 34.7765193] },
+        ],
+    };
 
-        var caves = [{
-            name: 'cave 1',
-            location: [-0.6743637, 34.7753614, 18.34],
+    const colors = {
+        hills:      '#3a5a40',
+        caves:      '#5c4033',
+        springs:    '#2980b9',
+        waterfalls: '#1a6b8a',
+    };
 
-        }, {
-            name: 'cave 2',
-            location: [-0.6780949, 34.7327949, 14],
+    const userLatLng = [-0.6917379, 34.7838437];
+    const center     = [-0.6803312, 34.7600382];
 
-        }, {
-            name: 'cave 3',
-            location: [-0.7139235, 34.8032076, 14],
+    const map = L.map('map', { zoomControl: true }).setView(center, 13);
 
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'
+    }).addTo(map);
 
-        }, {
-            name: 'cave 4',
-            location: [-0.6708163, 34.7420812, 14],
+    //User marker
+    const userIcon = L.divIcon({
+        html: `<div style="width:14px;height:14px;background:#e74c3c;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 2px #e74c3c"></div>`,
+        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+    });
+    const userMarker = L.marker(userLatLng, { icon: userIcon }).addTo(map);
+    userMarker.bindPopup('<b>YOUR LOCATION</b>');
 
-        }];
+    let activeMarkers = [];
+    let currentCategory = localStorage.getItem('locator-category') || 'hills';
 
-        var springs = [{
-            name: 'spring 1',
-            location: [-0.6301669, 34.633069, 13],
+    function makeIcon(color) {
+        return L.divIcon({
+            html: `<div style="width:11px;height:11px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>`,
+            iconSize: [11, 11], iconAnchor: [5, 5], className: ''
+        });
+    }
 
-        }, {
-            name: 'spring 2',
-            location: [-0.6546379, 34.7375175, 13],
+    function selectCategory(type) {
+        currentCategory = type;
+        localStorage.setItem('locator-category', type);
 
-        }, {
-            name: 'spring 3',
-            location: [-0.6739269, 34.7765193, 18.34],
+        // Update pills
+        document.querySelectorAll('.pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.type === type);
+        });
 
-        }, {
-            name: 'spring 3',
-            location: [-0.6452946, 34.6072171, 12.26],
+        // Clear old markers
+        activeMarkers.forEach(m => map.removeLayer(m));
+        activeMarkers = [];
 
-        }];
+        const places = data[type];
+        const color  = colors[type];
+        const icon   = makeIcon(color);
+        let nearest = Infinity, farthest = 0;
 
+        places.forEach(place => {
+            const m = L.marker(place.location, { icon }).addTo(map);
+            m.bindPopup(`<b>${place.name.toUpperCase()}</b>`);
+            activeMarkers.push(m);
 
-        var waterfalls = [{
-            name: 'waterfall 1',
-            location: [-0.6889176, 34.7588609, 13],
+            const dist = L.latLng(userLatLng).distanceTo(L.latLng(place.location));
+            if (dist < nearest)  nearest  = dist;
+            if (dist > farthest) farthest = dist;
+        });
 
+        // Update stats
+        document.getElementById('stat-count').textContent    = places.length;
+        document.getElementById('stat-nearest').textContent  = Math.round(nearest).toLocaleString();
+        document.getElementById('stat-farthest').textContent = Math.round(farthest).toLocaleString();
+        document.getElementById('stat-category').textContent = type.toUpperCase();
+    }
 
-        }, {
-            name: 'waterfall 2',
-            location: [-0.6546379, 34.7375175, 13],
-
-        }, {
-            name: 'waterfall 3',
-            location: [-0.6739269, 34.7765193, 18.34],
-
-
-        }];
-
-
-
-        // Set the center coordinates of the map
-        var center = [-0.6803312, 34.7600382, 14];
-
-        // Create the map object
-        var map = L.map('map').setView(center, 15);
-
-        // Add the base layer (in this case, OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Add a marker for the user's location
-        var userMarker = L.marker([-0.6917379, 34.7838437, 19]).addTo(map);
-        userMarker.bindPopup('Your Location');
-
-        let ab = localStorage.getItem("data")
-        console.log("data", ab)
-
-
-        // Description: This code adds markers for hills and calculates the shortest distance from the user marker to each hill marker
-
-        // Check if "ab" variable is null or equals "hills"
-        if (ab == null || ab == "hills") {
-            // Iterate through each hill in the "hills" array
-            hills.forEach(function(hill) {
-                // Add a new marker to the map for the current hill
-                var marker = L.marker(hill.location).addTo(map);
-                // Bind a popup to the marker displaying the name of the hill
-                marker.bindPopup(hill.name);
-
-                // Calculate the shortest distance from the user marker to the current hill marker
-                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
-
-                // Output the shortest distance to the console for testing purposes
-                console.log("Shortest distance to " + hill.name + ": " + shortestDistance);
-            });
-        } else {
-            // Handle the case where "ab" is not null and does not equal "hills"
-            console.log("Invalid input for 'ab' variable.");
-        }
-
-
-
-
-        if (ab == null || ab == "caves") {
-            caves.forEach(function(cave) {
-                var marker = L.marker(cave.location).addTo(map);
-
-                // Add cave name as a popup
-                var popupContent = (cave.name);
-                marker.bindPopup(popupContent);
-
-                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
-                //output the shortest distance
-                console.log("Shortest distance to " + cave.name + ": " + shortestDistance);
-            });
-        } else {
-            // Handle the case where "ab" is not null and does not equal "hills"
-            console.log("Invalid input for 'ab' variable.");
-
-        }
-
-
-        if (ab == null || ab == "springs") {
-            springs.forEach(function(spring) {
-                var marker = L.marker(spring.location).addTo(map);
-
-                // Add spring name as a popup
-                var popupContent = (spring.name);
-                marker.bindPopup(popupContent);
-
-                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
-
-
-            });
-        }
-        if (ab == null || ab == "waterfalls") {
-            waterfalls.forEach(function(waterfall) {
-                var marker = L.marker(waterfall.location).addTo(map);
-                marker.bindPopup(waterfall.name);
-
-                var shortestDistance = userMarker.getLatLng().distanceTo(marker.getLatLng());
-
-            });
-        }
-    </script>
-
+    selectCategory(currentCategory);
+</script>
 </body>
-
 </html>
